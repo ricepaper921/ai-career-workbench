@@ -845,7 +845,10 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     return {
       v: 1, theme: 'auto',
       user: { name: '', school: '', grade: '大三', hours: 10, target: 'llm' },
-      skills: { math: 2, code: 2, ml: 2, dl: 1, data: 2, eng: 1, research: 1, product: 2 },
+      // 自评默认全 0，且 skillsSet=false 表示「还没做过自评」。
+      // 这样重置后整体进度是真正的 0%，而不会把预填的默认值当成已完成的进度。
+      skills: { math: 0, code: 0, ml: 0, dl: 0, data: 0, eng: 0, research: 0, product: 0 },
+      skillsSet: false,
       roadmap: {}, projects: {}, prep: {}, records: [], checkins: [],
       ui: { view: 'dashboard', cat: '全部', q: '', level: '全部' }
     };
@@ -866,10 +869,20 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   }
 
   function load() {
+    var o = null;
     try {
       var raw = localStorage.getItem(KEY);
-      if (raw) { var o = JSON.parse(raw); if (o && typeof o === 'object') S = merge(defaults(), o); }
-    } catch (e) { /* 读取失败则使用默认值 */ }
+      if (raw) o = JSON.parse(raw);
+    } catch (e) { o = null; /* 读取失败则使用默认值 */ }
+    if (o && typeof o === 'object') S = merge(defaults(), o);
+    // 兼容旧版本存档：那版没有 skillsSet 标记，且默认预填了自评值。
+    // 若存下来的自评值恰好等于旧默认值或全为 0，说明用户从未真正打过分。
+    if (o && typeof o === 'object' && o.skillsSet === undefined) {
+      var legacy = { math: 2, code: 2, ml: 2, dl: 1, data: 2, eng: 1, research: 1, product: 2 };
+      S.skillsSet = Object.keys(legacy).some(function (k) {
+        return S.skills[k] !== legacy[k] && S.skills[k] !== 0;
+      });
+    }
     var h = (location.hash || '').replace('#', '');
     if (h && VIEWS.some(function (v) { return v.id === h; })) S.ui.view = h;
   }
@@ -939,7 +952,8 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   }
   function targetRole() { return roleOf(S.user.target); }
   function skillMatch() {
-    var r = targetRole(); if (!r) return null;
+    var r = targetRole();
+    if (!r || !S.skillsSet) return null;   // 还没自评就不算匹配度，避免凭空给出一个分数
     var gapSum = 0;
     DIMS.forEach(function (d) {
       var g = (r.dims[d.k] || 0) - (S.skills[d.k] || 0);
@@ -974,14 +988,21 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     if (!r) {
       out.push({ t: '先选定一个目标岗位', d: '到岗位地图挑一个方向设为目标，能力自评与建议才会有对照基准。', go: 'careers' });
     }
-    var top = g.filter(function (x) { return x.gap > 0; }).slice(0, 2);
-    top.forEach(function (x) {
+    if (!S.skillsSet) {
       out.push({
-        t: '补短板：' + x.n + '（差 ' + x.gap + ' 分）',
-        d: x.d + '。建议按学习路线里的对应阶段推进，并用项目把能力做实。',
+        t: '先完成能力自评',
+        d: '到「能力自评」把八项滑杆拖一遍，雷达图和匹配度才会出现。没自评之前，整体进度只统计学习路线、实践项目和求职准备三项。',
         go: 'skills'
       });
-    });
+    } else {
+      g.filter(function (x) { return x.gap > 0; }).slice(0, 2).forEach(function (x) {
+        out.push({
+          t: '补短板：' + x.n + '（差 ' + x.gap + ' 分）',
+          d: x.d + '。建议按学习路线里的对应阶段推进，并用项目把能力做实。',
+          go: 'skills'
+        });
+      });
+    }
     var ps = projStats();
     if (ps.joined === 0) {
       var lv = (S.user.grade === '大一' || S.user.grade === '大二') ? '入门' : '进阶';
@@ -1107,11 +1128,12 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       '<div class="ring">' + ringSVG(ov) + '</div>' +
       '</div></div>';
 
-    h += '<h3 class="sec-title">进度看板 <small>四项平均得到整体进度</small></h3><div class="grid g-4">';
+    h += '<h3 class="sec-title">进度看板 <small>按已参与的项平均得到整体进度</small></h3><div class="grid g-4">';
     h += statCard('🗺️ 学习路线', rs.p + '%', rs.done + ' / ' + rs.total + ' 项任务', rs.p);
     h += statCard('🧪 实践项目', ps.p + '%', ps.joined ? ps.joined + ' 个项目 · ' + ps.done + ' / ' + ps.steps + ' 步' : '尚未加入项目', ps.p);
     h += statCard('🎤 求职准备', qs.p + '%', qs.done + ' / ' + qs.total + ' 项', qs.p);
-    h += statCard('🎯 能力匹配', ms ? ms.p + '%' : '—', ms ? '与目标岗位的差距合计 ' + ms.gapSum + ' 分' : '请先设定目标岗位', ms ? ms.p : 0);
+    h += statCard('🎯 能力匹配', ms ? ms.p + '%' : '待自评',
+      ms ? '与目标岗位的差距合计 ' + ms.gapSum + ' 分' : '在「能力自评」拖动滑杆后显示', ms ? ms.p : 0);
     h += '</div>';
 
     h += '<div class="grid g-2" style="margin-top:12px">';
@@ -1207,19 +1229,29 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
   function renderSkills() {
     var g = gaps(); var r = targetRole(); var ms = skillMatch();
-    var h = '<div class="grid g-2">';
+    var set = !!S.skillsSet;
+    var h = '';
+    if (!set) {
+      h += '<div class="card" id="skillHint" style="margin-bottom:14px;border-color:var(--brand)">' +
+        '<div class="card-h" style="margin-bottom:6px"><h3>还没有完成能力自评</h3><span class="badge">第 1 步</span></div>' +
+        '<p style="font-size:13px;color:var(--text2)">下面八项滑杆现在是 0 分。把它们依次拖到你觉得真实的水平（0 = 未接触，5 = 精通），' +
+        '雷达图和匹配度会立刻出现。在你打完分之前，整体进度只统计学习路线、实践项目和求职准备三项，' +
+        '这样「重置」之后看到的就是真正的 0%，而不是一个凭空算出来的分数。</p></div>';
+    }
+    h += '<div class="grid g-2">';
     h += '<div class="card"><div class="card-h"><h3>能力雷达</h3><span class="sub">' +
       (r ? '实线＝你的自评，虚线＝' + esc(r.name) + ' 的基准' : '设定目标岗位后可显示对照基准') + '</span></div>' +
       '<div class="radar-wrap">' + radarSVG() + '</div>' +
       '<div style="display:flex;gap:14px;justify-content:center;font-size:12px;color:var(--dim);flex-wrap:wrap">' +
       '<span>—— 我的水平</span><span style="color:var(--warn)">- - - 目标岗位基准</span></div>' +
-      (ms ? '<p style="font-size:12.5px;color:var(--text2);margin-top:10px;text-align:center">综合匹配度 <b>' + ms.p + '%</b>，待补齐差距共 ' + ms.gapSum + ' 分。</p>' : '') +
+      (ms ? '<p style="font-size:12.5px;color:var(--text2);margin-top:10px;text-align:center">综合匹配度 <b>' + ms.p + '%</b>，待补齐差距共 ' + ms.gapSum + ' 分。</p>'
+          : '<p style="font-size:12.5px;color:var(--dim);margin-top:10px;text-align:center">拖动右侧滑杆后，这里会显示你的综合匹配度。</p>') +
       '</div>';
 
     h += '<div class="card"><div class="card-h"><h3>逐项打分</h3><span class="sub">0 = 未接触，5 = 精通</span></div>';
     DIMS.forEach(function (d) {
       var v = S.skills[d.k] || 0, want = r ? (r.dims[d.k] || 0) : null;
-      var gapTxt = want == null ? '' : (want - v > 0
+      var gapTxt = (!set || want == null) ? '' : (want - v > 0
         ? '<span class="gap neg">差 ' + (want - v) + '</span>'
         : '<span class="gap pos">达标</span>');
       h += '<div class="skill-row"><b>' + esc(d.n) + '</b>' +
@@ -1229,6 +1261,12 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         '<span class="d">' + esc(d.d) + (want != null ? '　｜　目标岗位要求 ' + want : '') + '</span></div>';
     });
     h += '</div></div>';
+
+    if (!set) {
+      h += '<h3 class="sec-title">差距清单</h3><div class="card empty">完成上面的自评后，这里会按「最需要提升」的顺序列出八项能力与目标岗位的差距。</div>';
+      document.getElementById('v-skills').innerHTML = h;
+      return;
+    }
 
     h += '<h3 class="sec-title">差距清单 <small>按需要提升的程度排序</small></h3><div class="grid g-auto">';
     g.forEach(function (x) {
@@ -1562,7 +1600,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       case 'import': doImport(); break;
 
       case 'reset': {
-        openModal('清空所有数据', '<p style="font-size:13.5px;color:var(--text2)">这会删除本机保存的全部进度：路线勾选、项目进度、面试清单、经历记录与打卡记录。该操作不可撤销，建议先导出备份。</p>',
+        openModal('清空所有数据', '<p style="font-size:13.5px;color:var(--text2)">这会删除本机保存的全部进度：路线勾选、项目进度、面试清单、能力自评、经历记录与打卡记录，并回到全新状态（整体进度归零）。该操作不可撤销，建议先导出备份。</p>',
           [{ label: '取消', cls: 'btn sm' },
            { label: '确认清空', cls: 'btn danger sm', act: function () {
               S = defaults(); applyTheme(); save(); closeModal(); render(); toast('已清空');
@@ -1590,6 +1628,12 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     if (t.getAttribute && t.getAttribute('data-act') === 'skill') {
       var k = t.getAttribute('data-k'), v = +t.value;
       S.skills[k] = v;
+      // 第一次拖动滑杆即视为「已自评」，此时才把匹配度纳入整体进度
+      if (!S.skillsSet) {
+        S.skillsSet = true;
+        var hint = document.getElementById('skillHint');
+        if (hint) hint.parentNode.removeChild(hint);
+      }
       var row = t.closest('.skill-row');
       if (row) {
         row.querySelector('.lvl').textContent = v + ' · ' + LEVELS[v];
@@ -1605,12 +1649,16 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     }
   });
 
-  // 下拉框与单选类表单
+  // 下拉框与单选类表单；滑杆松手后重算匹配度与整体进度
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (t.getAttribute && t.getAttribute('data-act') === 'user') {
+    if (!t.getAttribute) return;
+    var act = t.getAttribute('data-act');
+    if (act === 'user') {
       S.user[t.getAttribute('data-k')] = t.value;
       save(); render();
+    } else if (act === 'skill') {
+      save(); renderSkills(); renderDashboard();
     }
   });
 
