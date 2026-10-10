@@ -638,84 +638,125 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     {
       id: 'p1', name: '结构化数据预测入门：房价 / 泰坦尼克', level: '入门', weeks: '1–2 周', tags: ['特征工程', 'sklearn', '评估指标'],
       goal: '跑通一次完整的监督学习流程，理解验证集与过拟合到底是什么。',
-      data: 'Kaggle Titanic、Boston/California Housing',
+      data: [
+        { n: 'Kaggle Titanic 竞赛', u: 'https://www.kaggle.com/competitions/titanic' },
+        { n: 'California Housing', u: 'https://scikit-learn.org/stable/datasets/real_world.html' }
+      ],
       steps: ['做 EDA：缺失值、分布、异常值', '特征工程：编码、分箱、缩放、交叉特征', '对比 3 种以上模型并调参', '用交叉验证选择模型，输出提交文件', '写一份实验记录，说明每一步为什么这么做'],
       deliver: '可复现的 Notebook + 一页实验结论'
     },
     {
       id: 'p2', name: '从零实现神经网络（不用框架）', level: '入门', weeks: '1 周', tags: ['反向传播', 'numpy', '原理'],
       goal: '手写前向与反向传播，彻底搞懂梯度从哪里来。',
-      data: 'MNIST 手写数字',
+      data: [
+        { n: 'MNIST（Kaggle 镜像）', u: 'https://www.kaggle.com/datasets/hojjatk/mnist-dataset' },
+        { n: 'PyTorch 数据集 API', u: 'https://pytorch.org/vision/stable/datasets.html' }
+      ],
       steps: ['用 numpy 实现全连接层与激活函数', '手写反向传播并做梯度检查', '加入 mini-batch 与学习率衰减', '与 PyTorch 实现对比准确率与速度', '画出损失曲线并解释收敛过程'],
       deliver: '纯 numpy 训练脚本 + 梯度检查对照结果'
     },
     {
       id: 'p3', name: '电影推荐系统（协同过滤 + 矩阵分解）', level: '入门', weeks: '2 周', tags: ['推荐系统', '矩阵分解', '评估'],
       goal: '理解推荐系统的基本范式与离线评估方式。',
-      data: 'MovieLens 100K/1M',
+      data: [
+        { n: 'MovieLens 100K / 1M', u: 'https://grouplens.org/datasets/movielens/' }
+      ],
       steps: ['数据划分：按时间切分训练/测试', '实现 UserCF 与 ItemCF 基线', '实现矩阵分解（ALS/SVD）', '用 Recall@K、NDCG@K 评估', '分析冷启动与长尾问题'],
       deliver: '推荐基线对比报告 + 可交互的 Top-N 结果'
     },
     {
       id: 'p4', name: '图像分类实战：迁移学习与数据增强', level: '进阶', weeks: '2–3 周', tags: ['CNN', '迁移学习', 'PyTorch'],
       goal: '掌握在有限数据下把模型效果做上去的工程套路。',
-      data: 'CIFAR-100、Food-101、自建小数据集',
+      data: [
+        { n: 'CIFAR-100', u: 'https://www.cs.toronto.edu/~kriz/cifar.html' },
+        { n: 'Food-101', u: 'https://data.vision.ee.ethz.ch/cvl/datasets_extra/food-101/' },
+        { n: '自建小数据集' }
+      ],
       steps: ['搭建训练框架：日志、checkpoint、可复现种子', '用预训练 ResNet/EfficientNet 微调', '对比多种数据增强与学习率策略', '分析混淆矩阵与错误样本', '导出 ONNX 并做一次推理加速测试'],
       deliver: '训练框架代码 + 消融实验表 + 错误分析'
     },
     {
       id: 'p5', name: '中文文本分类与情感分析', level: '进阶', weeks: '2–3 周', tags: ['NLP', 'Transformer', '微调'],
       goal: '走通文本数据从清洗到微调评测的全流程。',
-      data: 'THUCNews、ChnSentiCorp、电商评论',
+      data: [
+        { n: '中文 NLP 语料合集（含 ChnSentiCorp）', u: 'https://github.com/SophonPlus/ChineseNlpCorpus' },
+        { n: 'THUCNews / 电商评论' }
+      ],
       steps: ['文本清洗：去噪、分词、长度统计', 'Baseline：TF-IDF + 线性模型', '微调 BERT 系列模型并调参', '构建错误分析集与评测脚本', '对比大模型 Zero-shot / Few-shot 效果'],
       deliver: '微调脚本 + 误差分析 + 与 LLM 基线对比'
     },
     {
       id: 'p6', name: '检索增强问答系统（RAG）', level: '进阶', weeks: '3 周', tags: ['RAG', '向量检索', 'LLM'],
       goal: '交付一个能回答私有文档问题的完整应用，而不是只会调 API。',
-      data: '任意领域 PDF/网页 + 开源自建向量库',
+      data: [
+        { n: 'Chroma 向量库', u: 'https://www.trychroma.com/' },
+        { n: 'LangChain 文档', u: 'https://docs.langchain.com/' },
+        { n: '自备 PDF / 网页语料' }
+      ],
       steps: ['文档解析与分块策略设计', '生成向量并建立检索索引', '召回 + 重排 + 生成三段式链路', '构建评测集，量化召回率与答案正确率', '做延迟与成本优化，加缓存与流式输出'],
       deliver: '可运行服务 + 评测集 + 效果对比表'
     },
     {
       id: 'p7', name: '目标检测复现与改进', level: '进阶', weeks: '3–4 周', tags: ['检测', 'YOLO', '复现'],
       goal: '完整复现一篇有代码的检测工作，并做出可验证的小改进。',
-      data: 'COCO 子集、VOC、自建标注数据集',
+      data: [
+        { n: 'COCO 数据集', u: 'https://cocodataset.org/' },
+        { n: 'Ultralytics YOLO', u: 'https://github.com/ultralytics/ultralytics' },
+        { n: 'PASCAL VOC / 自建标注' }
+      ],
       steps: ['跑通官方代码，复现论文指标', '读源码，标出关键模块', '做一次消融（如替换 neck、加注意力）', '自行标注一小批真实数据做泛化测试', '整理复现笔记与踩坑清单'],
       deliver: '复现报告 + 改进实验结果 + 技术笔记'
     },
     {
       id: 'p8', name: '时序预测与异常检测', level: '进阶', weeks: '2–3 周', tags: ['时序', '统计', '工业场景'],
       goal: '掌握时间序列的切分方式、特征与评估陷阱。',
-      data: '销量数据、电力负荷、服务器监控指标',
+      data: [
+        { n: 'Rossmann 销量预测', u: 'https://www.kaggle.com/competitions/rossmann-store-sales' },
+        { n: 'UCI 数据集库（电力负荷等）', u: 'https://archive.ics.uci.edu/' }
+      ],
       steps: ['建立朴素基线与统计模型（ARIMA/指数平滑）', '构造滑动窗口特征与滞后特征', '训练 LightGBM/LSTM 并对比', '严格按时间切分，避免未来信息泄漏', '做异常检测并输出告警策略'],
       deliver: '时序预测流水线 + 泄漏检查说明'
     },
     {
       id: 'p9', name: '大模型 LoRA 微调与评测', level: '高阶', weeks: '2–3 周', tags: ['微调', 'LoRA', '评测'],
       goal: '补上「微调」这一环，理解数据质量比超参更重要。',
-      data: '开源中文指令数据集 + 自建领域数据',
+      data: [
+        { n: 'LLaMA-Factory 微调框架', u: 'https://github.com/hiyouga/LLaMA-Factory' },
+        { n: 'ModelScope 魔搭（中文数据集）', u: 'https://www.modelscope.cn/' }
+      ],
       steps: ['整理指令数据并做质量清洗', '用 LoRA/QLoRA 在单卡上微调', '对比基座、微调后、提示词工程三种方案', '构建人工评测与自动指标双轨评测', '导出并部署为可调用服务'],
       deliver: '微调流程 + 评测报告 + 部署 demo'
     },
     {
       id: 'p10', name: '多智能体（Agent）工具调用系统', level: '高阶', weeks: '3–4 周', tags: ['Agent', '工程', '工作流'],
       goal: '让模型真正去「做事」：调用工具、分解任务、自我纠错。',
-      data: '真实工具（搜索、数据库、代码执行沙箱）',
+      data: [
+        { n: 'Microsoft AutoGen', u: 'https://github.com/microsoft/autogen' },
+        { n: 'CrewAI', u: 'https://github.com/crewAIInc/crewAI' },
+        { n: 'MCP 协议文档', u: 'https://modelcontextprotocol.io/docs' },
+        { n: '搜索 / 数据库 / 代码沙箱' }
+      ],
       steps: ['定义工具接口与调用协议', '实现规划—执行—反思的工作流', '加重试、超时、成本熔断等工程护栏', '设计任务成功率的评测集', '与单次调用基线做对比实验'],
       deliver: '可运行 Agent 系统 + 成功率对比 + 失败案例分析'
     },
     {
       id: 'p11', name: '端到端 MLOps 流水线', level: '高阶', weeks: '3–4 周', tags: ['MLOps', 'Docker', 'CI/CD'],
       goal: '把模型从 Notebook 变成可监控、可回滚的线上服务。',
-      data: '任意中等规模数据集',
+      data: [
+        { n: 'MLflow', u: 'https://mlflow.org/' },
+        { n: 'DVC 数据版本管理', u: 'https://dvc.org/' },
+        { n: 'Docker 入门', u: 'https://docs.docker.com/get-started/' }
+      ],
       steps: ['Docker 化训练与推理环境', '用 MLflow/DVC 管理实验与数据版本', '搭建自动化训练—评估—发布流水线', '部署推理服务并加指标监控', '模拟数据漂移并触发重训'],
       deliver: '可一键复现的流水线 + 监控看板'
     },
     {
       id: 'p12', name: '论文复现 + 改进（科研向）', level: '高阶', weeks: '6–8 周', tags: ['科研', '论文', '创新'],
       goal: '训练完整的科研闭环：读、复现、发现问题、改进、写作。',
-      data: '顶会近两年高引论文（有开源代码优先）',
+      data: [
+        { n: 'arXiv 最新论文（cs.LG）', u: 'https://arxiv.org/list/cs.LG/recent' },
+        { n: 'GitHub 复现仓库', u: 'https://github.com/topics/deep-learning' }
+      ],
       steps: ['精读 3 篇同方向论文并写综述笔记', '完整复现主实验结果', '找出论文未解释的现象或局限', '设计并验证自己的改进方案', '按论文结构写成 8 页技术报告'],
       deliver: '复现仓库 + 技术报告 + 答辩级讲解'
     }
@@ -1241,7 +1282,12 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       '<span class="week">' + (joined ? done + '/' + p.steps.length + ' 步' : '') + '</span></div>' +
       '<p style="font-size:12.5px;color:var(--text2)">' + esc(p.goal) + '</p>' +
       '<div class="tags">' + p.tags.map(function (x) { return '<span class="tag b">' + esc(x) + '</span>'; }).join('') + '</div>' +
-      '<div style="font-size:12px;color:var(--dim)">📦 数据/工具：' + esc(p.data) + '</div>';
+      '<div><div style="font-size:12px;color:var(--dim);margin-bottom:6px">📦 数据 / 工具</div>' +
+      '<div class="res" style="margin-top:0">' + p.data.map(function (x) {
+        return x.u
+          ? '<a href="' + esc(x.u) + '" target="_blank" rel="noopener noreferrer">' + esc(x.n) + '</a>'
+          : '<span>' + esc(x.n) + '</span>';
+      }).join('') + '</div></div>';
     if (joined) {
       h += '<div class="fold">' + bar(pct(done, p.steps.length)) +
         '<div style="margin-top:8px">' + p.steps.map(function (s, i) {
