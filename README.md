@@ -1,6 +1,11 @@
 # 人工智能专业 · 职业生涯规划学习实践工作台
 
+> **在线网址（作业提交用）**：<https://ricepaper921.github.io/ai-career-workbench/>
+> 仓库地址：<https://github.com/ricepaper921/ai-career-workbench>
+
 面向人工智能专业学生的**离线单文件网站**：一个 `index.html`，零依赖、零安装、零联网，手机 / 平板 / 电脑都能直接打开。
+
+> 修改内容后，在站点目录执行 `git add -A && git commit -m "更新" && git push`，约 1 分钟后线上网址会自动同步。
 
 ---
 
