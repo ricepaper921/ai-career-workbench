@@ -281,6 +281,27 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .modal-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--card)}
 .modal textarea{width:100%;min-height:200px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;padding:10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg2)}
 
+/* ---------- 首次进入引导 ---------- */
+.ob-steps{display:flex;align-items:center;gap:5px;margin-bottom:12px}
+.ob-steps i{width:26px;height:4px;border-radius:999px;background:var(--border);display:block;transition:.2s}
+.ob-steps i.on{background:var(--brand)}
+.ob-steps span{font-size:12px;color:var(--dim);margin-left:6px}
+.ob-intro{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.7}
+.ob-roles{display:grid;grid-template-columns:1fr;gap:8px;max-height:46vh;overflow-y:auto;padding-right:4px}
+.ob-role{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--card);transition:.15s}
+.ob-role:hover{border-color:var(--brand)}
+.ob-role.on{border-color:var(--brand);background:var(--brand-soft)}
+.ob-role .ico{width:30px;height:30px;flex:none;border-radius:9px;background:var(--soft);display:grid;place-items:center;font-size:16px}
+.ob-role b{font-size:13.5px;display:block;font-weight:600}
+.ob-role em{font-size:11.5px;color:var(--dim);font-style:normal}
+.ob-slider{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--border)}
+.ob-slider:last-child{border-bottom:none}
+.ob-slider b{font-size:13px;font-weight:600;grid-column:1/-1}
+.ob-slider .want{font-size:11.5px;color:var(--dim)}
+.hero-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.42);color:#fff;padding:7px 14px;border-radius:var(--r-sm);font-size:13px;transition:.15s}
+.hero-btn:hover{background:rgba(255,255,255,.32)}
+@media (min-width:640px){.ob-roles{grid-template-columns:1fr 1fr}}
+
 .toast{
   position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
   background:var(--text);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:80;
@@ -827,6 +848,8 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 
   var LEVELS = ['未接触', '了解', '入门', '掌握', '熟练', '精通'];
   var CATS = ['全部', '算法', '应用', '数据', '工程'];
+  var GRADES = ['大一', '大二', '大三', '大四', '研究生', '已毕业'];
+  var HOURS = [5, 10, 15, 20, 30, 40];
 
   /* ============================ 状态与持久化 ============================ */
 
@@ -849,6 +872,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       // 这样重置后整体进度是真正的 0%，而不会把预填的默认值当成已完成的进度。
       skills: { math: 0, code: 0, ml: 0, dl: 0, data: 0, eng: 0, research: 0, product: 0 },
       skillsSet: false,
+      onboarded: false,
       roadmap: {}, projects: {}, prep: {}, records: [], checkins: [],
       ui: { view: 'dashboard', cat: '全部', q: '', level: '全部' }
     };
@@ -882,6 +906,11 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
       S.skillsSet = Object.keys(legacy).some(function (k) {
         return S.skills[k] !== legacy[k] && S.skills[k] !== 0;
       });
+    }
+    // 老存档若已经有任何进度，就认为已经过了引导，不再打扰
+    if (o && typeof o === 'object' && o.onboarded === undefined) {
+      S.onboarded = !!(S.user.name || S.records.length || S.checkins.length ||
+        Object.keys(S.roadmap).length || Object.keys(S.projects).length || Object.keys(S.prep).length);
     }
     var h = (location.hash || '').replace('#', '');
     if (h && VIEWS.some(function (v) { return v.id === h; })) S.ui.view = h;
@@ -1124,7 +1153,9 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
         '<span class="chip">⏱ 每周可投入 ' + esc(S.user.hours) + ' 小时</span>' +
         '<span class="chip">🔥 连续打卡 ' + streak() + ' 天</span>' +
         (ms ? '<span class="chip">🎯 能力匹配 ' + ms.p + '%</span>' : '') +
-      '</div></div>' +
+      '</div>' +
+      (S.user.name ? '' : '<div style="margin-top:12px"><button class="hero-btn" data-act="onboard">✏️ 完善个人资料与目标岗位</button></div>') +
+      '</div>' +
       '<div class="ring">' + ringSVG(ov) + '</div>' +
       '</div></div>';
 
@@ -1388,16 +1419,17 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   function renderProfile() {
     var u = S.user;
     var h = '<div class="grid g-2">';
-    h += '<div class="card"><div class="card-h"><h3>学业信息</h3><span class="sub">用于生成个性化建议</span></div>' +
+    h += '<div class="card"><div class="card-h"><h3>学业信息</h3>' +
+      '<button class="btn sm" data-act="onboard">重新填写引导</button></div>' +
       '<div class="form-2">' +
       field('称呼', '<input type="text" value="' + esc(u.name) + '" placeholder="怎么称呼你" data-act="user" data-k="name">') +
       field('学校 / 专业方向', '<input type="text" value="' + esc(u.school) + '" placeholder="如：XX大学 人工智能" data-act="user" data-k="school">') +
       field('当前年级', '<select data-act="user" data-k="grade">' +
-        ['大一', '大二', '大三', '大四', '研究生', '已毕业'].map(function (g) {
+        GRADES.map(function (g) {
           return '<option' + (u.grade === g ? ' selected' : '') + '>' + g + '</option>';
         }).join('') + '</select>') +
       field('每周可投入学习时间', '<select data-act="user" data-k="hours">' +
-        [5, 10, 15, 20, 30, 40].map(function (x) {
+        HOURS.map(function (x) {
           return '<option value="' + x + '"' + (String(u.hours) === String(x) ? ' selected' : '') + '>约 ' + x + ' 小时</option>';
         }).join('') + '</select>') +
       field('目标岗位', '<select data-act="user" data-k="target">' +
@@ -1485,6 +1517,123 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     document.getElementById('modal').hidden = true;
     document.getElementById('modalBody').innerHTML = '';
     document.getElementById('modalFoot').innerHTML = '';
+    // 引导被任何方式关掉（✕ / Esc / 点遮罩 / 跳过）都算作已完成，
+    // 否则用户每次刷新都会被再拦一次。
+    if (onboardOpen) { onboardOpen = false; S.onboarded = true; save(); }
+  }
+
+  /* ============================ 首次进入引导 ============================ */
+
+  var onboardOpen = false;
+  var obDraft = null;
+  var OB_STEPS = ['基本信息', '目标岗位', '能力自评'];
+
+  function startOnboard() {
+    obDraft = {
+      step: 1,
+      name: S.user.name || '',
+      school: S.user.school || '',
+      grade: S.user.grade || '大三',
+      hours: Number(S.user.hours) || 10,
+      target: S.user.target || 'llm',
+      skills: {}
+    };
+    DIMS.forEach(function (d) { obDraft.skills[d.k] = S.skillsSet ? (S.skills[d.k] || 0) : 0; });
+    onboardOpen = true;
+    renderOnboard();
+  }
+
+  function obReadStep() {
+    if (!obDraft || obDraft.step !== 1) return;
+    var n = document.getElementById('ob-name'), s = document.getElementById('ob-school');
+    var g = document.getElementById('ob-grade'), h = document.getElementById('ob-hours');
+    if (n) obDraft.name = n.value.trim();
+    if (s) obDraft.school = s.value.trim();
+    if (g) obDraft.grade = g.value;
+    if (h) obDraft.hours = Number(h.value) || 10;
+  }
+
+  function obDots() {
+    return '<div class="ob-steps">' + OB_STEPS.map(function (s, i) {
+      return '<i class="' + (i < obDraft.step ? 'on' : '') + '"></i>';
+    }).join('') + '<span>第 ' + obDraft.step + ' 步 / 共 3 步 · ' + OB_STEPS[obDraft.step - 1] + '</span></div>';
+  }
+
+  function renderOnboard() {
+    var s = obDraft.step, body = '', buttons = [];
+
+    if (s === 1) {
+      body = obDots() +
+        '<p class="ob-intro">先花半分钟填一下基本信息。后面的岗位匹配度、进度统计和「下一步建议」都会按你的情况来算。<br>所有内容只存在你自己的浏览器里，不会上传到任何地方。</p>' +
+        '<div class="form-2">' +
+        field('怎么称呼你', '<input id="ob-name" type="text" value="' + esc(obDraft.name) + '" placeholder="如：小林">') +
+        field('学校 / 专业方向', '<input id="ob-school" type="text" value="' + esc(obDraft.school) + '" placeholder="如：XX大学 人工智能">') +
+        field('当前年级', '<select id="ob-grade">' + GRADES.map(function (g) {
+          return '<option' + (obDraft.grade === g ? ' selected' : '') + '>' + g + '</option>';
+        }).join('') + '</select>') +
+        field('每周可投入学习时间', '<select id="ob-hours">' + HOURS.map(function (x) {
+          return '<option value="' + x + '"' + (String(obDraft.hours) === String(x) ? ' selected' : '') + '>约 ' + x + ' 小时</option>';
+        }).join('') + '</select>') +
+        '</div>';
+      buttons = [
+        { label: '跳过引导', cls: 'btn ghost sm', act: function () { obFinish(false); } },
+        { label: '下一步 →', cls: 'btn primary sm', act: function () { obReadStep(); obDraft.step = 2; renderOnboard(); } }
+      ];
+    } else if (s === 2) {
+      body = obDots() +
+        '<p class="ob-intro">选一个你现在最想去的方向。它会成为雷达图的对照基准，也决定「下一步建议」往哪个方向推。以后随时能在「岗位地图」里改。</p>' +
+        '<div class="ob-roles">' + CAREERS.map(function (c) {
+          return '<button class="ob-role ' + (obDraft.target === c.id ? 'on' : '') + '" data-act="ob-role" data-id="' + c.id + '">' +
+            '<span class="ico">' + c.icon + '</span>' +
+            '<span><b>' + esc(c.name) + '</b><em>' + esc(c.cat) + ' · 参考月薪 ' + esc(c.salary) + '</em></span></button>';
+        }).join('') + '</div>';
+      buttons = [
+        { label: '← 上一步', cls: 'btn sm', act: function () { obDraft.step = 1; renderOnboard(); } },
+        { label: '下一步 →', cls: 'btn primary sm', act: function () { obDraft.step = 3; renderOnboard(); } }
+      ];
+    } else {
+      var r = roleOf(obDraft.target);
+      body = obDots() +
+        '<p class="ob-intro">最后给八项能力各打一个分（0 = 未接触，5 = 精通）。凭感觉就行，不用纠结——打分之后雷达图和匹配度才会出现，也才能看出该补哪里。' +
+        '没把握的话可以跳过，之后在「能力自评」里随时补。</p>' +
+        DIMS.map(function (d) {
+          var v = obDraft.skills[d.k] || 0;
+          var want = r ? (r.dims[d.k] || 0) : null;
+          return '<div class="ob-slider"><b>' + esc(d.n) + '</b>' +
+            '<span class="want">' + (want != null ? '目标要求 ' + want : '') + '</span>' +
+            '<input type="range" min="0" max="5" step="1" value="' + v + '" data-act="ob-skill" data-k="' + d.k + '" aria-label="' + esc(d.n) + '">' +
+            '<span class="lvl" style="width:38px;text-align:right;font-size:12.5px;color:var(--dim)">' + v + ' · ' + LEVELS[v] + '</span></div>';
+        }).join('');
+      buttons = [
+        { label: '← 上一步', cls: 'btn sm', act: function () { obDraft.step = 2; renderOnboard(); } },
+        { label: '先跳过自评', cls: 'btn ghost sm', act: function () { obFinish(false); } },
+        { label: '完成，进入工作台', cls: 'btn primary sm', act: function () { obFinish(true); } }
+      ];
+    }
+
+    openModal('欢迎使用 · 第 ' + s + ' 步', body, buttons);
+  }
+
+  function obFinish(withSkills) {
+    obReadStep();
+    S.user.name = obDraft.name;
+    S.user.school = obDraft.school;
+    S.user.grade = obDraft.grade;
+    S.user.hours = obDraft.hours;
+    S.user.target = obDraft.target;
+    if (withSkills) {
+      var any = DIMS.some(function (d) { return (obDraft.skills[d.k] || 0) > 0; });
+      if (any) {
+        DIMS.forEach(function (d) { S.skills[d.k] = obDraft.skills[d.k] || 0; });
+        S.skillsSet = true;
+      }
+    }
+    S.onboarded = true;
+    onboardOpen = false;
+    save();
+    closeModal();
+    render();
+    toast('设置完成，工作台已经按你的情况算好了');
   }
 
   /* ============================ 交互 ============================ */
@@ -1512,6 +1661,9 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
     var act = t.getAttribute('data-act'), id = t.getAttribute('data-id');
     switch (act) {
       case 'go': show(id); break;
+
+      case 'onboard': startOnboard(); break;
+      case 'ob-role': if (obDraft) { obDraft.target = id; renderOnboard(); } break;
 
       case 'theme': {
         var order = ['auto', 'light', 'dark'];
@@ -1615,6 +1767,13 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   var saveTimer;
   document.addEventListener('input', function (e) {
     var t = e.target;
+    if (t.getAttribute && t.getAttribute('data-act') === 'ob-skill') {
+      var ok2 = t.getAttribute('data-k'), ov = +t.value;
+      if (obDraft) obDraft.skills[ok2] = ov;
+      var oRow = t.closest('.ob-slider');
+      if (oRow) oRow.querySelector('.lvl').textContent = ov + ' · ' + LEVELS[ov];
+      return;
+    }
     if (t.getAttribute && t.getAttribute('data-act') === 'search') {
       S.ui.q = t.value; refreshCareerGrid();
       clearTimeout(saveTimer); saveTimer = setTimeout(save, 600);
@@ -1769,6 +1928,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   load();
   applyTheme();
   render();
+  if (!S.onboarded) startOnboard();   // 首次进入先建立档案，而不是丢一个全 0 的仪表盘
 })();
 </script>
 </body>
